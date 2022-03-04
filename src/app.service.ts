@@ -22,8 +22,12 @@ export class AppService {
 
   async click(ip: string, clickRequest: ClickRequset) {
     let token = clickRequest.authorization;
-    ip = '223.39.219.58';
-    const country = lookup(ip).country;
+    let country = 'KR';
+    try {
+      country = lookup(ip).country;
+    } catch (e: any) {
+      throw new BadRequestException('Invalid IP Address');
+    }
 
     await this.addCount(ip, clickRequest.click, country);
 
