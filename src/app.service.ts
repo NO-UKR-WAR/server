@@ -66,7 +66,7 @@ export class AppService {
       }
       this.countRepository.save({
         country_code: country,
-        count: click + value,
+        count: Number(click + Number(value)),
       });
     }
   }
