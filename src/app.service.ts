@@ -1,16 +1,31 @@
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  CACHE_MANAGER,
+  HttpException,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import { lookup } from 'geoip-lite';
+import { CountRepository } from './count/domain/repository/count.repository';
 import { ClickRequset } from './dto/request/click.request';
 import { TokenService } from './token/token.service';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly tokenService: TokenService) {}
+  constructor(
+    private readonly tokenService: TokenService,
+    private readonly countRepository: CountRepository,
+    @Inject(CACHE_MANAGER)
+    private readonly cacheManager: Cache,
+  ) {}
 
   async click(ip: string, clickRequest: ClickRequset) {
     let token = clickRequest.authorization;
+    ip = '223.39.219.58';
+    const country = lookup(ip).country;
 
-    this.addCount(ip, clickRequest.click);
+    await this.addCount(ip, clickRequest.click, country);
 
     if (
       clickRequest.authorization === undefined ||
@@ -27,16 +42,28 @@ export class AppService {
     }
 
     return {
-      location: lookup(ip).country,
+      location: country,
       token: token,
     };
   }
 
-  private async addCount(ip: string, click: number) {
-    // if(redis.find({ip: ip}).exist()) {
-    //   throw new HttpException('Too many Request', 409)
-    // }
-    // redis.save({ip: ip, ttl: 20})
-    // db.save({click: click + click})
+  private async addCount(ip: string, click: number, country: string) {
+    const value = await this.cacheManager.get(ip);
+    this.cacheManager.set(ip, '', { ttl: 20 });
+    if (value !== null) {
+      throw new HttpException('Too many Request', 409);
+    } else {
+      let value = 0;
+      const countEntity = await this.countRepository.findOne({
+        country_code: country,
+      });
+      if (countEntity !== undefined) {
+        value = countEntity.count;
+      }
+      this.countRepository.save({
+        country_code: country,
+        count: click + value,
+      });
+    }
   }
 }
