@@ -4,6 +4,7 @@ import {
   HttpException,
   Inject,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { lookup } from 'geoip-lite';
@@ -61,6 +62,9 @@ export class AppService {
       const countEntity = await this.countRepository.findOne({
         country_code: country,
       });
+      const WREntity = await this.countRepository.findOne({
+        country_code: 'WR',
+      });
       if (countEntity !== undefined) {
         value = countEntity.count;
       }
@@ -68,6 +72,28 @@ export class AppService {
         country_code: country,
         count: Number(click + Number(value)),
       });
+      this.countRepository.save({
+        country_code: 'WR',
+        count: Number(click + Number(WREntity.count)),
+      });
     }
+  }
+
+  public async queryCountryList(page: number) {
+    return this.countRepository.find({
+      order: { count: 'DESC' },
+      skip: page * 10,
+      take: 10,
+    });
+  }
+
+  public async queryCountry(countryCode: string) {
+    const entity = await this.countRepository.find({
+      country_code: countryCode,
+    });
+    if (entity === undefined) {
+      throw new NotFoundException('Country Not Found');
+    }
+    return entity;
   }
 }
