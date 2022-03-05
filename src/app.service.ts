@@ -79,7 +79,7 @@ export class AppService {
     }
   }
 
-  public async queryCountryList(page: number) {
+  public async queryCountryList() {
     return this.countRepository.find({
       order: { count: 'DESC' },
     });
