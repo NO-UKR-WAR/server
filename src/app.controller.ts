@@ -13,8 +13,8 @@ export class AppController {
   }
 
   @Get('countries')
-  async queryCountryList(@Query('page') page: number) {
-    return this.appService.queryCountryList(page);
+  async queryCountryList() {
+    return this.appService.queryCountryList();
   }
 
   @Get('countries/:country_code')

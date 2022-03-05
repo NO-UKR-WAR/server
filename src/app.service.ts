@@ -82,8 +82,6 @@ export class AppService {
   public async queryCountryList(page: number) {
     return this.countRepository.find({
       order: { count: 'DESC' },
-      skip: page * 10,
-      take: 10,
     });
   }
 
