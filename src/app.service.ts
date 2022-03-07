@@ -11,6 +11,7 @@ import { lookup } from 'geoip-lite';
 import { CountRepository } from './count/domain/repository/count.repository';
 import { ClickRequset } from './dto/request/click.request';
 import { TokenService } from './token/token.service';
+import { createClient } from 'redis';
 
 @Injectable()
 export class AppService {
@@ -19,7 +20,13 @@ export class AppService {
     private readonly countRepository: CountRepository,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
-  ) {}
+  ) {
+    this.redisClient.connect();
+  }
+
+  private redisClient = createClient({
+    url: 'redis://' + process.env.REDIS_HOST + ':' + process.env.REDIS_PORT,
+  });
 
   async click(ip: string, clickRequest: ClickRequset) {
     let token = clickRequest.authorization;
@@ -54,7 +61,7 @@ export class AppService {
 
   private async addCount(ip: string, click: number, country: string) {
     const value = await this.cacheManager.get(ip);
-    this.cacheManager.set(ip, '', { ttl: 20 });
+    this.cacheManager.set(ip, '', 20);
     if (value !== null) {
       throw new HttpException('Too many Request', 409);
     } else {
@@ -80,9 +87,12 @@ export class AppService {
   }
 
   public async queryCountryList() {
-    return this.countRepository.find({
-      order: { count: 'DESC' },
-    });
+    return {
+      user_count: await this.redisClient.dbSize(),
+      countries: await this.countRepository.find({
+        order: { count: 'DESC' },
+      }),
+    };
   }
 
   public async queryCountry(countryCode: string) {
