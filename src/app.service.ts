@@ -61,7 +61,7 @@ export class AppService {
 
   private async addCount(ip: string, click: number, country: string) {
     const value = await this.cacheManager.get(ip);
-    this.cacheManager.set(ip, '', 20);
+    this.cacheManager.set(ip, '', { ttl: 20 });
     if (value !== null) {
       throw new HttpException('Too many Request', 409);
     } else {
